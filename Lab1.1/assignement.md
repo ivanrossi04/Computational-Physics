@@ -9,7 +9,3 @@ We will study the function $\sin(x)$, calculating the derivatives using finite d
 - Second plot: absolute error with a logarithmic vertical scale.
 
 _**Final note:** only represent the points where it was possible to calculate all the derivatives._
-
-### Further insights
-
-We want to generalize the differentiation formula for higher-order derivatives. Write a program that implements the derivative formula in matrix form and solves it as a linear system.
