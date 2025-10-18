@@ -1,17 +1,32 @@
+# !V1
+
+'''
+How to run this script:
+- set function and its exact derivative in the main() function
+- run the script
+- input the interval and number of points when prompted
+'''
+
 import numpy as np
 import matplotlib.pyplot as plt
 from typing import Callable
 
-def derivative_function(f: Callable[[np.ndarray], np.ndarray], x: np.ndarray, h: float, method: str = 'central'):
+def derivative_function(f: Callable[[np.ndarray], np.ndarray], x: np.ndarray, h: float, method: str = 'central') -> np.ndarray:
     '''
     Compute the numerical derivative of a function f at points x using finite difference methods.
+
     Parameters:
-        f: The function to differentiate. Must accept and return numpy arrays.
-        x: The points at which to compute the derivative.
-        h: The spacing between points in x.
-        method: The finite difference method to use ('right', 'left', 'central').
+        f (Callable[[np.ndarray], np.ndarray]): Function to differentiate. Must accept and return numpy arrays.
+        x (np.ndarray): Points at which to compute the derivative.
+        h (float): Fixed spacing between adjacent points in x.
+        method (str): Finite difference method to use. Possible values are {'right', 'left', 'central'}.
+
     Returns:
-        An array of the derivative values at points x.
+        df/dx: Derivative values at the points x (endpoints padded with zeros).
+
+    Raises:
+        ValueError: If central difference is chosen but there are fewer than 3 points in x.
+        ValueError: If an unsupported method is provided.
     '''
 
     y = f(x)
@@ -24,9 +39,15 @@ def derivative_function(f: Callable[[np.ndarray], np.ndarray], x: np.ndarray, h:
         df_dx = (y[1:] - y[:-1]) / h
         df_dx= np.insert(df_dx, 0, 0)
     elif method == 'central':
+        if len(x) < 3:
+            raise ValueError("Central difference requires at least 3 points.")
+        
         df_dx = (y[2:] - y[:-2]) / (2 * h)
         df_dx = np.insert(df_dx, 0, 0)
         df_dx = np.append(df_dx, 0)
+    else:
+        raise ValueError("Invalid method. Choose 'right', 'left', or 'central'.")
+    
     return df_dx
 
 def main():
@@ -38,10 +59,10 @@ def main():
 
     x = np.linspace(x_min, x_max, n) # note h = x_max/(n-1) since we have n elements and x_max is included
     
-    # !define manually the function and compute values for its exact derivative
+    # ! define manually the function and compute values for its exact derivative
     f = lambda x: np.exp(-x**2)
     df = -2*x*np.exp(-x**2)
-    # --------------------------------------    
+    # ! --------------------------------------    
 
     h = (x_max - x_min) / (n - 1)
     
