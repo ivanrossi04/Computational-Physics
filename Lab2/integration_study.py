@@ -2,9 +2,15 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+from typing import Callable
 import time
 
-def integrate_naive(function, x_min: float, x_max: float, N: int) -> float:
+def integrate_naive(function: Callable[[np.ndarray], np.ndarray], x_min: float, x_max: float, N: int) -> float:
+    '''Naive rectangle integration method
+    This method approximates the integral by summing the areas of rectangles
+    formed by the function values at the left endpoints of each subinterval.
+    '''
+
     h = (x_max - x_min) / (N - 1)
 
     # Evaluate function at the left endpoints
@@ -12,7 +18,12 @@ def integrate_naive(function, x_min: float, x_max: float, N: int) -> float:
 
     return np.sum(f * h)
 
-def integrate_rectangle(function, x_min: float, x_max: float, N: int) -> float:
+def integrate_rectangle(function: Callable[[np.ndarray], np.ndarray], x_min: float, x_max: float, N: int) -> float:
+    '''Rectangle integration method using midpoints
+    This method improves the naive rectangle method by using the midpoint of each interval
+    to evaluate the function, leading to a better approximation of the integral.
+    '''
+
     h = (x_max - x_min) / (N - 1)
 
     # Evaluate function at the midpoints
@@ -20,7 +31,11 @@ def integrate_rectangle(function, x_min: float, x_max: float, N: int) -> float:
 
     return np.sum(f_half * h)
 
-def integrate_trapezoid(function, x_min: float, x_max: float, N: int) -> float:
+def integrate_trapezoid(function: Callable[[np.ndarray], np.ndarray], x_min: float, x_max: float, N: int) -> float:
+    '''Trapezoid integration method
+    This method approximates the area under the curve as a series of trapezoids, making it more accurate than the rectangle method.
+    '''
+
     h = (x_max - x_min) / (N - 1)
 
     # Evaluate function at all points
@@ -28,7 +43,12 @@ def integrate_trapezoid(function, x_min: float, x_max: float, N: int) -> float:
 
     return (f[0] * h / 2 + np.sum(f[1:N-1] * h) + f[N-1] * h / 2)
 
-def integrate_simpson(function, x_min: float, x_max: float, N: int) -> float:
+def integrate_simpson(function: Callable[[np.ndarray], np.ndarray], x_min: float, x_max: float, N: int) -> float:
+    '''
+    Simpson integration method: 
+    This method is based on the idea of approximating the integrand by a second-degree polynomial
+    and integrating this polynomial exactly.
+    '''
 
     # The simpson method requires an odd number of intervals
     if(not(N % 2)): raise Exception('The number N of intervals should be odd, instead got N = ' + str(N))
@@ -41,9 +61,8 @@ def integrate_simpson(function, x_min: float, x_max: float, N: int) -> float:
     return (f[0] * h / 3 + np.sum(f[1:N-1:2] * h * 4 / 3) + np.sum(f[2:N-1:2] * h * 2 / 3) + f[N-1] * h / 3)
 
 def main():
-
-    # Insert your code here
     npoints = np.power(10, np.arange(1, 8))
+
     rett_naif = []
     rett = []
     trap = []
@@ -67,28 +86,22 @@ def main():
     end_time = time.perf_counter()
     duration = end_time - start_time
 
-    print("Naive Rectangles Results: ", np.array(rett_naif))
-    print("Rectangles Results: ", np.array(rett))
-    print("Trapezoids Results: ", np.array(trap))
-    print("Simpson Results: ", np.array(simp))
     print("Computation time for every integration: ", duration)
-    # ---------------------
     
-    fig, ax = plt.subplots() # definiamo un grafico
-
     plt.rcParams.update({'font.size': 16}) # cambiamo il font
     
-    plt.plot(npoints,rett_naif,  ls='-', label="Rettangoli Naif")
-    plt.plot(npoints,rett,  ls='-', label="Rettangoli")
-    plt.plot(npoints,trap,  ls='-', label="Trapezi")
+    plt.figure()
+    plt.plot(npoints,rett_naif,  ls='-', label="Naive Rectangles")
+    plt.plot(npoints,rett,  ls='-', label="Rectangles")
+    plt.plot(npoints,trap,  ls='-', label="Trapezoids")
     plt.plot(npoints,simp,  ls='-', label="Simpson")
 
-    ax.set_xscale('log')
-    ax.set_yscale('log')
+    plt.xscale('log')
+    plt.yscale('log')
 
-    ax.legend()
-    ax.set_xlabel("N",fontsize=16)
-    ax.set_ylabel("Errore",fontsize=16)
+    plt.legend()
+    plt.xlabel("N",fontsize=16)
+    plt.ylabel("Errore",fontsize=16)
     plt.show(block=True)
 
 if __name__ == "__main__":
