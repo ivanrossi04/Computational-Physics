@@ -9,6 +9,15 @@ def integrate_naive(function: Callable[[np.ndarray], np.ndarray], x_min: float, 
     '''Naive rectangle integration method
     This method approximates the integral by summing the areas of rectangles
     formed by the function values at the left endpoints of each subinterval.
+
+    Parameters:
+        function (Callable[[np.ndarray], np.ndarray]): Function to integrate. Must accept and return numpy arrays.
+        x_min (float): Lower limit of integration.
+        x_max (float): Upper limit of integration.
+        N (int): Number of points.
+
+    Returns:
+        float: Approximation of the integral.
     '''
 
     h = (x_max - x_min) / (N - 1)
@@ -22,6 +31,15 @@ def integrate_rectangle(function: Callable[[np.ndarray], np.ndarray], x_min: flo
     '''Rectangle integration method using midpoints
     This method improves the naive rectangle method by using the midpoint of each interval
     to evaluate the function, leading to a better approximation of the integral.
+
+    Parameters:
+        function (Callable[[np.ndarray], np.ndarray]): Function to integrate. Must accept and return numpy arrays.
+        x_min (float): Lower limit of integration.
+        x_max (float): Upper limit of integration.
+        N (int): Number of points.
+
+    Returns:
+        float: Approximation of the integral.
     '''
 
     h = (x_max - x_min) / (N - 1)
@@ -34,6 +52,15 @@ def integrate_rectangle(function: Callable[[np.ndarray], np.ndarray], x_min: flo
 def integrate_trapezoid(function: Callable[[np.ndarray], np.ndarray], x_min: float, x_max: float, N: int) -> float:
     '''Trapezoid integration method
     This method approximates the area under the curve as a series of trapezoids, making it more accurate than the rectangle method.
+
+    Parameters:
+        function (Callable[[np.ndarray], np.ndarray]): Function to integrate. Must accept and return numpy arrays.
+        x_min (float): Lower limit of integration.
+        x_max (float): Upper limit of integration.
+        N (int): Number of points.
+
+    Returns:
+        float: Approximation of the integral.
     '''
 
     h = (x_max - x_min) / (N - 1)
@@ -48,6 +75,18 @@ def integrate_simpson(function: Callable[[np.ndarray], np.ndarray], x_min: float
     Simpson integration method: 
     This method is based on the idea of approximating the integrand by a second-degree polynomial
     and integrating this polynomial exactly.
+
+    Parameters:
+        function (Callable[[np.ndarray], np.ndarray]): Function to integrate. Must accept and return numpy arrays.
+        x_min (float): Lower limit of integration.
+        x_max (float): Upper limit of integration.
+        N (int): Number of points.
+
+    Returns:
+        float: Approximation of the integral.
+
+    Raises:
+        Exception: If N is even (The simpson method requires an odd number of intervals).
     '''
 
     # The simpson method requires an odd number of intervals
