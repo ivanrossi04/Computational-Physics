@@ -1,43 +1,60 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from typing import Callable
 
-# TODO: the program only works for sin(x), make it general
+def derivative_function(f: Callable[[np.ndarray], np.ndarray], x: np.ndarray, h: float, method: str = 'central'):
+    '''
+    Compute the numerical derivative of a function f at points x using finite difference methods.
+    Parameters:
+        f: The function to differentiate. Must accept and return numpy arrays.
+        x: The points at which to compute the derivative.
+        h: The spacing between points in x.
+        method: The finite difference method to use ('right', 'left', 'central').
+    Returns:
+        An array of the derivative values at points x.
+    '''
+
+    y = f(x)
+    df_dx = np.array([])
+    
+    if method == 'right':
+        df_dx = (y[1:] - y[:-1]) / h
+        df_dx = np.append(df_dx, 0)
+    elif method == 'left':
+        df_dx = (y[1:] - y[:-1]) / h
+        df_dx= np.insert(df_dx, 0, 0)
+    elif method == 'central':
+        df_dx = (y[2:] - y[:-2]) / (2 * h)
+        df_dx = np.insert(df_dx, 0, 0)
+        df_dx = np.append(df_dx, 0)
+    return df_dx
 
 def main():
-    # this program creates a list of n equally spaced numbers
-    # between 0 and x_max
 
+    # Take the interval and number of points as input
+    x_min = float(input('Enter X minimum: '))
     x_max = float(input('Enter X maximum: '))
     n = int(input('Enter the number of points: '))
 
-    x = np.linspace(0, x_max, n) # note h = x_max/(n-1) since we have n elements and x_max is included
-    f = np.sin(x)
+    x = np.linspace(x_min, x_max, n) # note h = x_max/(n-1) since we have n elements and x_max is included
+    
+    # !define manually the function and compute values for its exact derivative
+    f = lambda x: np.exp(-x**2)
+    df = -2*x*np.exp(-x**2)
+    # --------------------------------------    
 
-    h = x_max / (n - 1)
+    h = (x_max - x_min) / (n - 1)
+    
+    # compute the derivative approximations
+    df_dx = derivative_function(f, x, h, method='right')
+    df_sx = derivative_function(f, x, h, method='left')
+    df_best = derivative_function(f, x, h, method='central')
 
-    df = np.zeros((len(x)))
-    for i in range(len(f)):
-        df[i] = np.cos(x[i]) # exact derivative
-
-    df_dx = np.zeros((len(x)))
-    for i in range(len(f) - 1):
-        df_dx[i] = (f[i+1] - f[i]) / h # right derivative formula
-
-    df_sx = np.zeros((len(x)))
-    for i in range(1, len(f)):
-        df_sx[i] = (f[i] - f[i - 1]) / h # left derivative formula
-
-    df_best = np.zeros((len(x)))
-    for i in range(1, len(f) - 1):
-        df_best[i] = (f[i + 1] - f[i - 1]) / (2 * h) # central derivative formula
-
-    # Define a plot
     plt.rcParams.update({'font.size': 14})
-
     # Plot the functions
     plt.figure()
-    plt.plot(x, f,  ls='--', label="Sin")
-    plt.plot(x, df,  ls='-', label="Cos")
+    plt.plot(x, f(x),  ls='--', label="F(x)")
+    plt.plot(x, df,  ls='-', label="dF/dx exact")
     plt.plot(x[:-1], df_dx[:-1], ls='-', label="Right approximation")
     plt.plot(x[1:], df_sx[1:], ls='-', label="Left approximation")
     plt.plot(x[1:-1], df_best[1:-1], ls='-', label="Central approximation")
