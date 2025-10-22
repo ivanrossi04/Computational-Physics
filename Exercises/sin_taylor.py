@@ -1,9 +1,11 @@
-'''
-!V1 -----------------------------------------------------
+# !V1
 
-Insert the precicion of the taylor series as input
+'''
+---------------------------------------------------------
+
+Insert the precision of the taylor series as input
 Compute the taylor series of a value (or a set of values)
-Plot the values and compare them to the defaul np.sin()
+Plot the values and compare them to the default np.sin()
 
 The more distance from 0, the more terms are needed for a good approximation
 ---------------------------------------------------------
