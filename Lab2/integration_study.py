@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 from typing import Callable
 import time
 
+# Note: The last integration methods reach float64 precision limit, the fluctuations are due to round-off errors.
+
 def integrate_naive(function: Callable[[np.ndarray], np.ndarray], x_min: float, x_max: float, N: int) -> float:
     '''Naive rectangle integration method
     This method approximates the integral by summing the areas of rectangles
