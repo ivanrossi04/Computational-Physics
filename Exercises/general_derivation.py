@@ -7,6 +7,7 @@ How to run this script:
 - input the interval, number of points and derivative order when prompted
 '''
 
+import math
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -39,7 +40,7 @@ def main():
 
     # compute the offsets and factorials needed for the Taylor expansion (for efficiency)
     steps = [(deriv_n/2 - k) * h for k in range(a_m_dim)] # starts from the rightmost point and goes to the left
-    factorials = [np.math.factorial(k) for k in range(a_m_dim)]
+    factorials = [math.factorial(k) for k in range(a_m_dim)]
 
     for i in range(n): # for every x_i values
         f_i = np.zeros(a_m_dim)
