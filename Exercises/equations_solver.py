@@ -11,35 +11,40 @@ Choose the interval [a, b] appropriately.
 import math
 from typing import Callable
 
-# Auxiliary function to determine the sign of a number
-def sign(x: float) -> int:
+def solve_bisection(f: Callable[[float], float], a: float, b: float, epsilon: float) -> float:
     '''
-    Determine the sign of a number
-    
+    This function solves finds the zero of a given f: R -> R with the bisection method.
+    The function must change sign between [a, b] for a zero to be noticed in that interval.
+    Given an initial interval [a, b], the midpoint 'c' between them is found and f(c) is computed.
+    Based on where the change of sign happens, the midpoint becomes one of the extremes of the next interval.
+    The algorithm stops when a zero is found or when the width of the interval is less than epsilon.
+
     Parameters:
-        x : float: The number to check
+    - f (Callable[[float], float]): The function for which we are trying to find a root.
+    - a (float): The lower bound of the interval.
+    - b (float): The upper bound of the interval.
+    - epsilon (float): The tolerance for stopping the algorithm.
 
     Returns:
-    int : 1 if x > 0, -1 if x < 0, 0 if x == 0
+    - float: The approximate root of the function within the specified interval.
+
     '''
 
-    return (x > 0) - (x < 0)
-
-def solve_bisection(f: Callable[[float], float], a: float, b: float, epsilon: float) -> float:
     answer = math.nan
     f_a = f(a)
     f_b = f(b)
 
     # Bisection method (iterative)
-    if(sign(f_a) * sign(f_b) < 0):
+    if(math.copysign(1, f_a) * math.copysign(1, f_b) < 0):
         while b - a > epsilon:
             c = (a + b) / 2
             answer = c
             f_c = f(c)
-            if sign(f_a) * sign(f_c) < 0:
+            
+            if math.copysign(1, f_a) * math.copysign(1, f_c) < 0:
                 b = c
                 f_b = f_c
-            elif sign(f_c) * sign(f_b) < 0:
+            elif math.copysign(1, f_c) * math.copysign(1, f_b) < 0:
                 a = c
                 f_a = f_c
             else:
@@ -57,12 +62,12 @@ def solve_bisection_recursive(f: Callable[[float], float], a: float, b: float, e
         f_b = f(b)
 
         # Bisection method (recursive)
-        if(sign(f_a) * sign(f_b) < 0):
+        if(math.copysign(1, f_a) * math.copysign(1, f_b) < 0):
             c = (a + b) / 2
             f_c = f(c)
 
-            if sign(f_a) * sign(f_c) < 0: answer = solve_bisection_recursive(f, a, c, epsilon)
-            elif sign(answer) * sign(f_b) < 0: answer = solve_bisection_recursive(f, c, b, epsilon)
+            if math.copysign(1, f_a) * math.copysign(1, f_c) < 0: answer = solve_bisection_recursive(f, a, c, epsilon)
+            elif math.copysign(1, f_c) * math.copysign(1, f_b) < 0: answer = solve_bisection_recursive(f, c, b, epsilon)
             else: answer = c
         elif f_b == 0: answer = a
         elif f_a == 0: answer = b
@@ -70,13 +75,27 @@ def solve_bisection_recursive(f: Callable[[float], float], a: float, b: float, e
     
     return answer
 
-h = 1e-5
-
 def solve_newton_rhapson(f: Callable[[float], float], x_trial: float, epsilon: float) -> float:
+    '''
+    This function finds the zero of a given f: R -> R with the Newton-Rhapson method.
+    Given an initial guess x_trial, the function's derivative at that point is approximated using finite differences (midpoint method).
+    A new approximation x_sol is then computed using the formula:
+    x_sol = x_trial - f(x_trial) / f'(x_trial)
+    The process is repeated until the difference between successive approximations is less than epsilon.
+
+    Parameters:
+    - f (Callable[[float], float]): The function for which we are trying to find a root.
+    - x_trial (float): Initial guess for the root.
+    - epsilon (float): The tolerance for stopping the algorithm.
+
+    Returns: 
+    - float: The approximate root of the function.
+    '''
+
     x_sol = 0.0
 
     while True:
-        df_dx = (f(x_trial + h) - f(x_trial - h)) / (2 * h) 
+        df_dx = (f(x_trial + epsilon) - f(x_trial - epsilon)) / (2 * epsilon) 
         x_sol = x_trial - f(x_trial)/df_dx
 
         if(abs(x_trial - x_sol) < epsilon): break
@@ -86,7 +105,7 @@ def solve_newton_rhapson(f: Callable[[float], float], x_trial: float, epsilon: f
     return x_sol
 
 def solve_newton_rhapson_recursive(f: Callable[[float], float], x_trial: float, epsilon: float) -> float:
-    df_dx = (f(x_trial + h) - f(x_trial - h)) / (2 * h) 
+    df_dx = (f(x_trial + epsilon) - f(x_trial - epsilon)) / (2 * epsilon) 
     x_sol = x_trial - f(x_trial) / df_dx
 
     if(abs(x_trial - x_sol) > epsilon): return solve_newton_rhapson_recursive(f, x_sol, epsilon)
