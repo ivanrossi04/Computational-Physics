@@ -20,13 +20,13 @@ def solve_bisection(f: Callable[[float], float], a: float, b: float, epsilon: fl
     The algorithm stops when a zero is found or when the width of the interval is less than epsilon.
 
     Parameters:
-    - f (Callable[[float], float]): The function for which we are trying to find a root.
-    - a (float): The lower bound of the interval.
-    - b (float): The upper bound of the interval.
-    - epsilon (float): The tolerance for stopping the algorithm.
+        f (Callable[[float], float]): The function for which we are trying to find a root.
+        a (float): The lower bound of the interval.
+        b (float): The upper bound of the interval.
+        epsilon (float): The tolerance for stopping the algorithm.
 
     Returns:
-    - float: The approximate root of the function within the specified interval.
+        float: The approximate root of the function within the specified interval.
 
     '''
 
@@ -84,12 +84,12 @@ def solve_newton_rhapson(f: Callable[[float], float], x_trial: float, epsilon: f
     The process is repeated until the difference between successive approximations is less than epsilon.
 
     Parameters:
-    - f (Callable[[float], float]): The function for which we are trying to find a root.
-    - x_trial (float): Initial guess for the root.
-    - epsilon (float): The tolerance for stopping the algorithm.
+        f (Callable[[float], float]): The function for which we are trying to find a root.
+        x_trial (float): Initial guess for the root.
+        epsilon (float): The tolerance for stopping the algorithm.
 
-    Returns: 
-    - float: The approximate root of the function.
+    Returns:
+        float: The approximate root of the function
     '''
 
     x_sol = 0.0
