@@ -66,7 +66,7 @@ def main():
     plot.plot(x_plot, y, label="Original function")
     plot.plot(x_plot, y_approx, label="Polynomial approximation")
     plot.legend()
-    plot.title("Cubic splines")
+    plot.title("Cubic splines, N = " + str(n))
     plot.xlabel("x")
     plot.ylabel("y")
     plot.grid()
