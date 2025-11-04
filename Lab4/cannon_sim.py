@@ -19,8 +19,8 @@ air_resistance = 0.47
 
 # initial values
 theta = math.pi / 4 # rad
-v_0 = 200 # m/s
 time_intervals = np.power(10.0, np.arange(-6, 0))
+v_0 = 100 # m/s
 
 x_0 = 0.0 # m
 
@@ -29,6 +29,7 @@ projectile_volume = 4 / 3 * math.pi * r ** 3 / 1e6 # m^3
 projectile_area = math.pi * r ** 2 / 10000 # m^2
 projectile_mass = projectile_volume * projectile_density * 1000 # kg
 
+# pre-computed constants forces
 g_force = projectile_mass * g
 drag_coefficient = 0.5 * air_density * air_resistance * projectile_area
 # --------------------------------------------------------
@@ -74,40 +75,47 @@ def runge_kutta(position, velocity, time, mass, f, dt):
 
     return position, velocity, time
 
+@jit(nopython=True)
+def propagate(position, velocity, time, delta_t, mass, force, method):
+    while(True):
+            prev_x, prev_y = position[0], position[1]
+            position, velocity, time = method(position, velocity, time, mass, force, delta_t)
+
+            if position[1] <= 0: 
+                # interpolate the function to zero
+                position[0] = (position[1] * prev_x - prev_y * position[0]) / (position[1] - prev_y) - x_0
+                position[1] = 0.0
+
+                print(position)
+                return position
+
 def main():
+    # Estimate maximum iterations needed for pre-allocation:
+    # - Theoretical flight time (ideal case): 2*v*sin(θ)/g (It should be less with air resistance)
+    # - Add buffer for margin
+    estimated_flight_time = 2 * v_0 * math.sin(theta) / g
+
     # Ideal study (no friction)
     # Compute range with different time steps
     computed_range_euler = []
     computed_range_rk4 = []
 
     for delta_t in time_intervals:
+        max_iterations = int(estimated_flight_time / delta_t) + 1000
+
         # Explicit Euler method
         position = np.array([x_0, 0.0])
         velocity = np.array([v_0 * math.cos(theta), v_0 * math.sin(theta)])
         time = 0.0
-
-        while(True):
-            prev_x, prev_y = position[0], position[1]
-            position, velocity, time = explicit_euler(position, velocity, time, projectile_mass, f_ideal, delta_t)
-
-            if position[1] <= 0: 
-                # interpolate the function to zero
-                computed_range_euler.append((position[1] * prev_x - prev_y * position[0]) / (position[1] - prev_y) - x_0)
-                break
+        final_position = propagate(position, velocity, time, delta_t, projectile_mass, f_ideal, explicit_euler)
+        computed_range_euler.append(final_position[0])
 
         # RK4 method
         position = np.array([x_0, 0.0])
         velocity = np.array([v_0 * math.cos(theta), v_0 * math.sin(theta)])
         time = 0.0
-
-        while(True):
-            prev_x, prev_y = position[0], position[1]
-            position, velocity, time = runge_kutta(position, velocity, time, projectile_mass, f_ideal, delta_t)
-
-            if position[1] <= 0: 
-                # interpolate the function to zero
-                computed_range_rk4.append((position[1] * prev_x - prev_y * position[0]) / (position[1] - prev_y) - x_0)
-                break
+        final_position = propagate(position, velocity, time, delta_t, projectile_mass, f_ideal, runge_kutta)
+        computed_range_rk4.append(final_position[0])
 
     ideal_range = 2 * v_0 ** 2 / g * math.sin(theta) * math.cos(theta)
     print('Ideal range: ', ideal_range, 'm')
@@ -128,17 +136,13 @@ def main():
 
     # --------------------------------------------------------
     # Realistic study (with air resistance)
-    
-    # Estimate maximum iterations needed for pre-allocation:
-    # - Theoretical flight time (ideal case): 2*v*sin(θ)/g (It should be less with air resistance)
-    # - Add buffer for margin
-    estimated_flight_time = 2 * v_0 * math.sin(theta) / g
-    max_iterations = int(estimated_flight_time / time_intervals[0]) + 1000
-    
+    dt = 1e-4  # time step for simulation
+    max_iterations = int(estimated_flight_time / dt) + 1000
+
     # Pre-allocate trajectory array
     position = np.zeros((max_iterations, 2))
     position[0] = [x_0, 0.0]
-    
+
     velocity = np.array([v_0 * math.cos(theta), v_0 * math.sin(theta)])
     time = 0.0
     idx = 0
@@ -147,7 +151,7 @@ def main():
         idx += 1
         
         # RK4 
-        rkposition, velocity, time = runge_kutta(position[idx-1], velocity, time, projectile_mass, f_drag, time_intervals[0])
+        rkposition, velocity, time = runge_kutta(position[idx-1], velocity, time, projectile_mass, f_drag, dt)
         position[idx] = rkposition
 
         if rkposition[1] <= 0:
