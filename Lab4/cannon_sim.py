@@ -1,10 +1,24 @@
 # !V1
 
+'''
+Cannonball simulation considering ideal and drag forces using Explicit Euler and RK4 methods.
+
+While it is not the most comprehensive nor general solution to this problem, 
+the code is optimized for performance using Numba's JIT compilation, making the simulations efficient even for small time steps.
+
+The simulation calculates the trajectory of a projectile launched at a specified angle and initial velocity,
+accounting for both ideal conditions (no air resistance) and realistic conditions (with air resistance).
+
+The results are visualized using Matplotlib, showing the error in range estimation for different time steps
+and the trajectory of the projectile under air resistance.
+'''
+
 import numpy as np
 import math
 import matplotlib.pyplot as plot
 
 from numba import jit
+from typing import Callable
 
 # !Insert the problems data ------------------------------
 g = 9.81 # m/s
@@ -44,7 +58,22 @@ def f_drag(x: np.ndarray, v: np.ndarray, t: float) -> np.ndarray:
         return np.array([0, -g_force]) - drag_coefficient * np.linalg.norm(v) * v
 
 @jit(nopython=True)
-def explicit_euler(position, velocity, time, mass, f, dt):
+def explicit_euler(position: np.ndarray, velocity: np.ndarray, time: float, mass: float, f: Callable[[np.ndarray, np.ndarray, float], np.ndarray], dt: float) -> tuple:
+    '''
+    Explicit Euler method for updating position and velocity.
+
+    Parameters:
+        position : np.ndarray
+        velocity : np.ndarray
+        time : float
+        mass : float
+        f : Callable[[np.ndarray, np.ndarray, float], np.ndarray]
+        dt : float
+
+    Returns:
+        np.ndarray, np.ndarray, float: Updated position, velocity, and time after dt
+    '''
+
     time += dt
     force = f(position, velocity, time)
     position += velocity * dt
@@ -53,7 +82,21 @@ def explicit_euler(position, velocity, time, mass, f, dt):
     return position, velocity, time
 
 @jit(nopython=True)
-def runge_kutta(position, velocity, time, mass, f, dt):
+def runge_kutta(position: np.ndarray, velocity: np.ndarray, time: float, mass: float, f: Callable[[np.ndarray, np.ndarray, float], np.ndarray], dt: float) -> tuple:
+    '''
+    Fourth-order Runge-Kutta method for updating position and velocity.
+    
+    Parameters:
+        position : np.ndarray
+        velocity : np.ndarray
+        time : float
+        mass : float
+        f : Callable[[np.ndarray, np.ndarray, float], np.ndarray]
+        dt : float
+
+    Returns:
+        np.ndarray, np.ndarray, float: Updated position, velocity, and time after dt
+    '''
     kx = np.zeros((4, 2))
     kv = np.zeros((4, 2))
 
