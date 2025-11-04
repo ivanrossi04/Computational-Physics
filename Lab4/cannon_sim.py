@@ -3,6 +3,7 @@
 import numpy as np
 import math
 import matplotlib.pyplot as plot
+
 from numba import jit
 
 # !Insert the problems data ------------------------------
@@ -27,16 +28,19 @@ x_0 = 0.0 # m
 projectile_volume = 4 / 3 * math.pi * r ** 3 / 1e6 # m^3
 projectile_area = math.pi * r ** 2 / 10000 # m^2
 projectile_mass = projectile_volume * projectile_density * 1000 # kg
+
+g_force = projectile_mass * g
+drag_coefficient = 0.5 * air_density * air_resistance * projectile_area
 # --------------------------------------------------------
 
-# TODO: optimize the computation methods with numba and generalized y vector
+
 @jit(nopython=True)
 def f_ideal(x: np.ndarray, v: np.ndarray, t: float) -> np.ndarray:
-        return np.array([0, -projectile_mass * g])
+        return np.array([0, -g_force])
 
 @jit(nopython=True)
 def f_drag(x: np.ndarray, v: np.ndarray, t: float) -> np.ndarray:
-        return np.array([0, -projectile_mass * g]) -0.5 * air_density * air_resistance * projectile_area * math.sqrt(v[0] ** 2 + v[1] ** 2) * v
+        return np.array([0, -g_force]) - drag_coefficient * np.linalg.norm(v) * v
 
 @jit(nopython=True)
 def explicit_euler(position, velocity, time, mass, f, dt):
@@ -83,12 +87,12 @@ def main():
         time = 0.0
 
         while(True):
-            prev_position = np.copy(position)
+            prev_x, prev_y = position[0], position[1]
             position, velocity, time = explicit_euler(position, velocity, time, projectile_mass, f_ideal, delta_t)
 
             if position[1] <= 0: 
                 # interpolate the function to zero
-                computed_range_euler.append((position[1] * prev_position[0] - prev_position[1] * position[0]) / (position[1] - prev_position[1]) - x_0)
+                computed_range_euler.append((position[1] * prev_x - prev_y * position[0]) / (position[1] - prev_y) - x_0)
                 break
 
         # RK4 method
@@ -97,12 +101,12 @@ def main():
         time = 0.0
 
         while(True):
-            prev_position = np.copy(position)
+            prev_x, prev_y = position[0], position[1]
             position, velocity, time = runge_kutta(position, velocity, time, projectile_mass, f_ideal, delta_t)
 
             if position[1] <= 0: 
                 # interpolate the function to zero
-                computed_range_rk4.append((position[1] * prev_position[0] - prev_position[1] * position[0]) / (position[1] - prev_position[1]) - x_0)
+                computed_range_rk4.append((position[1] * prev_x - prev_y * position[0]) / (position[1] - prev_y) - x_0)
                 break
 
     ideal_range = 2 * v_0 ** 2 / g * math.sin(theta) * math.cos(theta)
@@ -124,20 +128,38 @@ def main():
 
     # --------------------------------------------------------
     # Realistic study (with air resistance)
-    position = np.array([[x_0, 0.0]])
+    
+    # Estimate maximum iterations needed for pre-allocation:
+    # - Theoretical flight time (ideal case): 2*v*sin(θ)/g (It should be less with air resistance)
+    # - Add buffer for margin
+    estimated_flight_time = 2 * v_0 * math.sin(theta) / g
+    max_iterations = int(estimated_flight_time / time_intervals[0]) + 1000
+    
+    # Pre-allocate trajectory array
+    position = np.zeros((max_iterations, 2))
+    position[0] = [x_0, 0.0]
+    
     velocity = np.array([v_0 * math.cos(theta), v_0 * math.sin(theta)])
     time = 0.0
-    while(True):
-
+    idx = 0
+    
+    while True:
+        idx += 1
+        
         # RK4 
-        rkposition, velocity, time = runge_kutta(position[-1], velocity, time, projectile_mass, f_drag, time_intervals[0])
-        position = np.append(position, [rkposition], axis=0)
+        rkposition, velocity, time = runge_kutta(position[idx-1], velocity, time, projectile_mass, f_drag, time_intervals[0])
+        position[idx] = rkposition
 
         if rkposition[1] <= 0:
             # interpolate the function to zero
-            if rkposition[0] == position[-2][0]: position[-1] = np.array([rkposition[0], 0.0])
-            else: position[-1] = np.array([(rkposition[1] * position[-1][0] - position[-1][1] * rkposition[0]) / (rkposition[1] - position[-1][1]) - x_0, 0.0])
+            if rkposition[0] == position[idx-1][0]: 
+                position[idx] = np.array([rkposition[0], 0.0])
+            else: 
+                position[idx] = np.array([(rkposition[1] * position[idx][0] - position[idx][1] * rkposition[0]) / (rkposition[1] - position[idx-1][1]) - x_0, 0.0])
             break
+    
+    # Trim the array to actual size used
+    position = position[:idx+1]
     
     plot.figure()
     plot.plot(position[:, 0], position[:, 1], ls='-', label='Projectile Path with Air Resistance')
