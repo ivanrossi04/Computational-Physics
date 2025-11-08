@@ -6,10 +6,12 @@ import matplotlib.pyplot as plt
 
 import matplotlib.animation as animation
 
-# TODO: add parallelization to speed up multiple simulation
-# TODO: animate multiple simulations together to show sensitivity to initial conditions
+import threading
 
-def animazione(coord: np.ndarray, dt: float, t: np.ndarray, trail_length: int = 50) -> None:
+N = 10
+trajectories = [None] * N
+
+def animazione(coord: np.ndarray, dt: float, trail_length: int = 50) -> None:
     '''
     This function creates an animation of the double pendulum trajectory.
 
@@ -19,8 +21,6 @@ def animazione(coord: np.ndarray, dt: float, t: np.ndarray, trail_length: int = 
             with the origin of the axes coinciding with the fixed point of the pendulum.
         dt : float
             The time step in seconds.
-        t : numpy array (N)
-            An array containing the number of steps, used only to derive N.
         trail_length : int, optional
             The number of steps to keep for plotting the trajectory (default is 50).
     '''
@@ -107,23 +107,18 @@ def animazione(coord: np.ndarray, dt: float, t: np.ndarray, trail_length: int = 
     # make the window size a square, to avoid distortions
     ax.set_aspect('equal')
 
-    ani = animation.FuncAnimation(fig=fig, func=update, frames=len(t), interval=int(dt*1000),blit=True)
+    ani = animation.FuncAnimation(fig=fig, func=update, frames=len(coord[0]), interval=int(dt*1000),blit=True)
     plt.show()
 
-def main():
+def propagate(state, dt, max_time, number):
 
     # Physical constants
     g = 9.81 # m/s^2
     
     # Pendulum variables
-    max_time = 60.0 # s
-    dt = 0.001 # s
-    
     # The initial positions are required from the user
     mass_1 = 1.0 # kg
     length_1 = 1.0 # m
-    angle_1 = float(input("Insert the FIRST pendulum initial angle (in radians, the maximum values are +-pi rad = +-180 deg: ")) # rad
-    angvel_1 = 0.0
     def f_1(theta_1, theta_2, omega_1, omega_2):
         """Angular acceleration of the first pendulum"""
         delta = theta_2 - theta_1
@@ -138,8 +133,6 @@ def main():
     
     mass_2 = 1.0 # kg
     length_2 = 1.0 # m
-    angle_2 = float(input("Insert the SECOND pendulum initial angle (in radians, the maximum values are +-pi rad = +-180 deg: ")) # rad
-    angvel_2 = 0.0
     def f_2(theta_1, theta_2, omega_1, omega_2):
         """Angular acceleration of the second pendulum"""
         delta = theta_2 - theta_1
@@ -152,56 +145,77 @@ def main():
         
         return numerator / denominator
 
-    trajectories = []
-    for i in range(2):
-        angle_1 += i * 0.01
+    # Time variables
+    time = 0.0 # s
+    
+    trajectory = [[
+        length_1 * math.sin(state[0]),
+        -length_1 * math.cos(state[0]),
+        length_1 * math.sin(state[0]) + length_2 * math.sin(state[2]),
+        -length_1 * math.cos(state[0]) - length_2 * math.cos(state[2])
+    ]]
 
-        # Time variables
-        time = 0.0 # s
-        
-        trajectory = [[
-            length_1 * math.sin(angle_1),
-            -length_1 * math.cos(angle_1),
-            length_1 * math.sin(angle_1) + length_2 * math.sin(angle_2),
-            -length_1 * math.cos(angle_1) - length_2 * math.cos(angle_2)
-        ]]
+    def derivatives(state):
+        theta_1, omega_1, theta_2, omega_2 = state
 
-        state = np.array([angle_1, angvel_1, angle_2, angvel_2])
+        dtheta_1_dt = omega_1
+        domega_1_dt = f_1(theta_1, theta_2, omega_1, omega_2)
+        dtheta_2_dt = omega_2
+        domega_2_dt = f_2(theta_1, theta_2, omega_1, omega_2)
 
-        def derivatives(state):
-            theta_1, omega_1, theta_2, omega_2 = state
+        return np.array([dtheta_1_dt, domega_1_dt, dtheta_2_dt, domega_2_dt])
 
-            dtheta_1_dt = omega_1
-            domega_1_dt = f_1(theta_1, theta_2, omega_1, omega_2)
-            dtheta_2_dt = omega_2
-            domega_2_dt = f_2(theta_1, theta_2, omega_1, omega_2)
+    while(time < max_time):
 
-            return np.array([dtheta_1_dt, domega_1_dt, dtheta_2_dt, domega_2_dt])
+        k1 = dt * derivatives(state)
+        k2 = dt * derivatives(state + k1/2)
+        k3 = dt * derivatives(state + k2/2)
+        k4 = dt * derivatives(state + k3)
+        state += (k1 + 2*k2 + 2*k3 + k4) / 6
+        time += dt
 
-        while(time < max_time):
+        if int(time / dt) % 20 == 0: 
+            trajectory.append([
+                length_1 * math.sin(state[0]),
+                -length_1 * math.cos(state[0]),
+                length_1 * math.sin(state[0]) + length_2 * math.sin(state[2]),
+                -length_1 * math.cos(state[0]) - length_2 * math.cos(state[2])
+            ])
 
-            k1 = dt * derivatives(state)
-            k2 = dt * derivatives(state + k1/2)
-            k3 = dt * derivatives(state + k2/2)
-            k4 = dt * derivatives(state + k3)
-            state += (k1 + 2*k2 + 2*k3 + k4) / 6
-            time += dt
+    trajectory = np.array(trajectory).T
 
-            if int(time / dt) % 20 == 0: 
-                trajectory.append([
-                    length_1 * math.sin(state[0]),
-                    -length_1 * math.cos(state[0]),
-                    length_1 * math.sin(state[0]) + length_2 * math.sin(state[2]),
-                    -length_1 * math.cos(state[0]) - length_2 * math.cos(state[2])
-                ])
+    # TODO: A semaphore here should be necessary to avoid race conditions
+    trajectories[number] = trajectory
 
-        trajectory = np.array(trajectory).T
-        trajectories.append(trajectory)
+def main():
+    dt = 0.001 # s
+    max_time = 10.0 # s
 
-    t = np.arange(0, max_time, dt*20)
+    angle_1 = float(input("Insert the FIRST pendulum initial angle:")) # rad
+    angvel_1 = 0.0
+
+    angle_2 = float(input("Insert the SECOND pendulum initial angle:")) # rad
+    angvel_2 = 0.0
+
+    initial_state = [angle_1, angvel_1, angle_2, angvel_2]
+
+    threads = []
+    for i in range(N):
+        initial_state[0] += i * 0.01
+        t = threading.Thread(target=propagate, args=(initial_state, dt, max_time, i))
+        threads.append(t)
+
+    # Start each thread
+    for t in threads:
+        t.start()
+
+    # Wait for all threads to finish
+    for t in threads:
+        t.join()
+
+    # TODO: Draw a unified graph for every pendulum (for comparison)
     for traj in trajectories:
-        animazione(traj, dt*20, t)
-
+        animazione(traj, dt*20)
 
 if __name__ == "__main__":
     main()
