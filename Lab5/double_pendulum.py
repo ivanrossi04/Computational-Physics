@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 
 import matplotlib.animation as animation
 
-# TODO: review the forces acting on the pendulum
 # TODO: add parallelization to speed up multiple simulation
 # TODO: animate multiple simulations together to show sensitivity to initial conditions
 
@@ -113,29 +112,45 @@ def animazione(coord: np.ndarray, dt: float, t: np.ndarray, trail_length: int = 
 
 def main():
 
+    # Physical constants
     g = 9.81 # m/s^2
+    
     # Pendulum variables
+    max_time = 60.0 # s
+    dt = 0.001 # s
+    
     # The initial positions are required from the user
     mass_1 = 1.0 # kg
     length_1 = 1.0 # m
     angle_1 = float(input("Insert the FIRST pendulum initial angle (in radians, the maximum values are +-pi rad = +-180 deg: ")) # rad
     angvel_1 = 0.0
     def f_1(theta_1, theta_2, omega_1, omega_2):
-        a = -mass_2 * length_2 * math.sin(theta_1 - theta_2) * omega_2 ** 2
-        b =  g * (mass_1 + mass_2) * math.sin(theta_1)
-        c = -math.cos(theta_1 - theta_2) * (-mass_2 * length_1 * math.sin(theta_1 - theta_2) * omega_1 ** 2 + mass_2 * g * math.sin(theta_2))
-        return -(a + b + c) / (length_1 * (mass_1 + mass_2 * (1 - math.cos(theta_1 - theta_2) ** 2)))
-
+        """Angular acceleration of the first pendulum"""
+        delta = theta_2 - theta_1
+        denominator = (mass_1 + mass_2) * length_1 - mass_2 * length_1 * math.cos(delta)**2
+        
+        numerator = (mass_2 * length_1 * omega_1**2 * math.sin(delta) * math.cos(delta) +
+                    mass_2 * g * math.sin(theta_2) * math.cos(delta) +
+                    mass_2 * length_2 * omega_2**2 * math.sin(delta) -
+                    (mass_1 + mass_2) * g * math.sin(theta_1))
+        
+        return numerator / denominator
+    
     mass_2 = 1.0 # kg
     length_2 = 1.0 # m
     angle_2 = float(input("Insert the SECOND pendulum initial angle (in radians, the maximum values are +-pi rad = +-180 deg: ")) # rad
     angvel_2 = 0.0
     def f_2(theta_1, theta_2, omega_1, omega_2):
-        a = -mass_2 / (mass_1 + mass_2) * math.cos(theta_1 - theta_2) * (mass_2 * length_2 * math.sin(theta_1 - theta_2) * omega_2 ** 2 + g * (mass_1 + mass_2) * math.sin(theta_1))
-        b = -mass_2 * length_1 * math.sin(theta_1 - theta_2) * omega_1 ** 2
-        c =  mass_2 * g * math.sin(theta_2)
-
-        return -(a + b + c) / (length_2 * (mass_1 + mass_2 * (1 - math.cos(theta_1 - theta_2) ** 2)))
+        """Angular acceleration of the second pendulum"""
+        delta = theta_2 - theta_1
+        denominator = (mass_1 + mass_2) * length_1 - mass_2 * length_1 * math.cos(delta)**2
+        
+        numerator = (-mass_2 * length_2 * omega_2**2 * math.sin(delta) * math.cos(delta) +
+                     (mass_1 + mass_2) * g * math.sin(theta_1) * math.cos(delta) -
+                     (mass_1 + mass_2) * length_1 * omega_1**2 * math.sin(delta) -
+                     (mass_1 + mass_2) * g * math.sin(theta_2))
+        
+        return numerator / denominator
 
     trajectories = []
     for i in range(2):
@@ -143,8 +158,6 @@ def main():
 
         # Time variables
         time = 0.0 # s
-        max_time = 10.0 # s
-        dt = 0.001 # s
         
         trajectory = [[
             length_1 * math.sin(angle_1),
