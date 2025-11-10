@@ -113,10 +113,22 @@ def animate_pendulums(all_coords: list, dt: float, trail_length: int = 50) -> No
         artists.append(origin_disc)
         return artists
 
-    ani = animation.FuncAnimation(fig=fig, func=update, frames=len(all_coords[0][0]), interval=int(dt*1000), blit=True)
+    ani = animation.FuncAnimation(fig=fig, func=update, frames=len(all_coords[0][0]), interval=int(dt*500), blit=True)
     plt.show()
 
-def propagate(state, dt, max_time, number):
+def propagate(state: list, dt: float, max_time: float, number: int) -> None:
+    '''
+    This routine propagates the state of a double pendulum using the Runge-Kutta 4th order method.
+    Parameters:
+        state : list of float
+            Initial state of the double pendulum [theta_1, omega_1, theta_2, omega_2]
+        dt : float
+            Time step in seconds.
+        max_time : float
+            Maximum simulation time in seconds.
+        number : int
+            The index number of the pendulum being simulated (Needed for storing the trajectory).
+    '''
 
     # Physical constants
     g = 9.81 # m/s^2
@@ -196,7 +208,7 @@ def propagate(state, dt, max_time, number):
 
 def main():
     dt = 0.001 # s
-    max_time = 10.0 # s
+    max_time = 60.0 # s
 
     angle_1 = float(input("Insert the FIRST pendulum initial angle (rad):")) # rad
     angvel_1 = 0.0
