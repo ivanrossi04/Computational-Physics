@@ -12,9 +12,18 @@ import matplotlib.animation as animation
 
 import threading
 
-N = 10
-trajectories = [None] * N # List to store trajectories of each pendulum
-trajectories_lock = threading.Lock() # Lock for synchronizing access to trajectories
+
+N = 3 # Number of pendulums simulated
+
+# Lists of data computed in time for each pendulum
+
+states = [None] * N         # List to store each angle and angular velocity of the pendulums
+trajectories = [None] * N   # List to store trajectories of each pendulum
+energies = [None] * N       # List to store the computed energy values for each pendulum
+
+# ------------------------------------------------
+
+trajectories_lock = threading.Lock() # Lock for synchronizing access to the shared data lists
 
 def animate_pendulums(all_coords: list, dt: float, trail_length: int = 50) -> None:
     '''
@@ -31,12 +40,13 @@ def animate_pendulums(all_coords: list, dt: float, trail_length: int = 50) -> No
             The number of steps to keep for plotting the trajectory (default is 50).
     '''
 
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(1, 3, figsize=(12, 4))
     
     # Define colors for each pendulum
     num_pendulums = len(all_coords)
     colors = plt.cm.rainbow(np.linspace(0, 1, num_pendulums))
     
+    # Set up the first subplot for the pendulum animation --------------------------
     # Create lists to store plot elements for each pendulum
     lines1 = []
     lines2 = []
@@ -52,38 +62,57 @@ def animate_pendulums(all_coords: list, dt: float, trail_length: int = 50) -> No
         # Define the line of the first pendulum
         l1x = np.array([0, coord[0, 0]])
         l1y = np.array([0, coord[1, 0]])
-        line1, = ax.plot(l1x, l1y, color=color, alpha=0.6, linewidth=1)
+        line1, = ax[0].plot(l1x, l1y, color=color, alpha=0.6, linewidth=1)
         lines1.append(line1)
 
         # Define the line of the second pendulum
         l2x = np.array([coord[0, 0], coord[2, 0]])
         l2y = np.array([coord[1, 0], coord[3, 0]])
-        line2, = ax.plot(l2x, l2y, color=color, alpha=0.6, linewidth=1)
+        line2, = ax[0].plot(l2x, l2y, color=color, alpha=0.6, linewidth=1)
         lines2.append(line2)
 
         # Trajectories
-        trail2, = ax.plot([], [], color=color, alpha=0.3, linewidth=0.5)
+        trail2, = ax[0].plot([], [], color=color, alpha=0.3, linewidth=0.5)
         trails2.append(trail2)
-        trail3, = ax.plot([], [], color=color, alpha=0.5, linewidth=1)
+        trail3, = ax[0].plot([], [], color=color, alpha=0.5, linewidth=1)
         trails3.append(trail3)
         
         # Discs
-        disc2, = ax.plot([], [], 'o', color=color, markersize=6, alpha=0.7)
+        disc2, = ax[0].plot([], [], 'o', color=color, markersize=6, alpha=0.7)
         discs2.append(disc2)
-        disc3, = ax.plot([], [], 'o', color=color, markersize=8, alpha=0.9)
+        disc3, = ax[0].plot([], [], 'o', color=color, markersize=8, alpha=0.9)
         discs3.append(disc3)
 
     # Fixed origin disc
-    origin_disc, = ax.plot([0], [0], 'ko', markersize=8)
+    origin_disc, = ax[0].plot([0], [0], 'ko', markersize=8)
 
-    ax.set(xlim=[-4, 4], ylim=[-4, 4], xlabel='X [m]', ylabel='Y [m]')
-    ax.set_aspect('equal')
-    ax.set_title(f'Double Pendulum Simulation - {num_pendulums} Pendulums')
-    ax.grid(True, alpha=0.3)
+    ax[0].set(xlim=[-4, 4], ylim=[-4, 4], xlabel='X [m]', ylabel='Y [m]')
+    ax[0].set_aspect('equal')
+    ax[0].set_title(f'Double Pendulum Simulation - {num_pendulums} Pendulums')
+    ax[0].grid(True, alpha=0.3)
+ 
+    # Set up the third subplot for energy vs time -----------------------------------
+    time_array = np.arange(0, len(all_coords[0][0]) * dt, dt)
 
+    for i, energy in enumerate(energies):
+        ax[1].plot(time_array, energy, color=colors[i], alpha=0.6)
+    
+    ax[1].set(xlabel='Time [s]', ylabel='Energy [J]', title='Energy vs Time')
+    ax[1].grid(True, alpha=0.3)
+    
+    # Set up the second subplot for dependency between the angles -------------------
+    
+    for i, state in enumerate(states):
+        ax[2].plot(state[0, :], state[2, :], color=colors[i], alpha=0.6)
+    
+    ax[2].set(xlabel='Theta 1 [rad]', ylabel='Theta 2 [rad]', title='Theta 1 vs Theta 2')
+    ax[2].grid(True, alpha=0.3)
+
+    # Animate the two plots ---------------------------------------------------------
     def update(frame):
         artists = []
         
+        # Update each pendulum
         for i, coord in enumerate(all_coords):
             # Update pendulum arms
             l1x = np.array([0, coord[0, frame]])
@@ -111,9 +140,17 @@ def animate_pendulums(all_coords: list, dt: float, trail_length: int = 50) -> No
             artists.extend([lines1[i], lines2[i], discs2[i], discs3[i], trails2[i], trails3[i]])
         
         artists.append(origin_disc)
+
+        # Update the points in the energy and angle plots
+        for i, state in enumerate(states):
+            ax[2].lines[i].set_data(state[0, :frame], state[2, :frame])
+            ax[1].lines[i].set_data(time_array[:frame], energies[i][:frame])
+            artists.append(ax[2].lines[i])
+            artists.append(ax[1].lines[i])
+
         return artists
 
-    ani = animation.FuncAnimation(fig=fig, func=update, frames=len(all_coords[0][0]), interval=int(dt*500), blit=True)
+    ani_pendulums = animation.FuncAnimation(fig=fig, func=update, frames=len(all_coords[0][0]), interval=int(dt*500), blit=True)
     plt.show()
 
 def propagate(state: list, dt: float, max_time: float, number: int) -> None:
@@ -165,13 +202,8 @@ def propagate(state: list, dt: float, max_time: float, number: int) -> None:
 
     # Time variables
     time = 0.0 # s
-    
-    trajectory = [[
-        length_1 * math.sin(state[0]),
-        -length_1 * math.cos(state[0]),
-        length_1 * math.sin(state[0]) + length_2 * math.sin(state[2]),
-        -length_1 * math.cos(state[0]) - length_2 * math.cos(state[2])
-    ]]
+
+    state_list = [state.copy()]
 
     def derivatives(state):
         theta_1, omega_1, theta_2, omega_2 = state
@@ -192,19 +224,30 @@ def propagate(state: list, dt: float, max_time: float, number: int) -> None:
         state += (k1 + 2*k2 + 2*k3 + k4) / 6
         time += dt
 
-        if int(time / dt) % 20 == 0: 
-            trajectory.append([
-                length_1 * math.sin(state[0]),
-                -length_1 * math.cos(state[0]),
-                length_1 * math.sin(state[0]) + length_2 * math.sin(state[2]),
-                -length_1 * math.cos(state[0]) - length_2 * math.cos(state[2])
-            ])
+        if int(time / dt) % 20 == 0:
+            state_list.append(state.copy())            
 
-    trajectory = np.array(trajectory).T
+    state_list = np.array(state_list)
+    
+    trajectory = np.array([
+        length_1 * np.sin(state_list[:,0]), 
+        -length_1 * np.cos(state_list[:,0]),
+        length_1 * np.sin(state_list[:,0]) + length_2 * np.sin(state_list[:,2]),
+        -length_1 * np.cos(state_list[:,0]) - length_2 * np.cos(state_list[:,2])
+    ])
+
+    energy = 0.5 * mass_1 * (length_1 * state_list[:,1])**2 + \
+            0.5 * mass_2 * ( (length_1 * state_list[:,1])**2 + (length_2 * state_list[:,3])**2 + \
+            2 * length_1 * length_2 * state_list[:,1] * state_list[:,3] * np.cos(state_list[:,0] - state_list[:,2]) ) + \
+            mass_1 * g * (length_1 * (1 - np.cos(state_list[:,0]))) + \
+            mass_2 * g * (length_1 * (1 - np.cos(state_list[:,0])) + length_2 * (1 - np.cos(state_list[:,2])))
+
 
     # A semaphore here should be necessary to avoid race conditions
     with trajectories_lock:
+        states[number] = state_list.T
         trajectories[number] = trajectory
+        energies[number] = energy
 
 def main():
     dt = 0.001 # s
