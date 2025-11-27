@@ -15,6 +15,8 @@ The Lorenz system is defined by:
 Standard parameters: σ=10, ρ=28, β=8/3 (chaotic regime)
 '''
 
+import os
+import tempfile
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -318,7 +320,8 @@ def plot_lorenz_attractor():
     ax2.grid(True, alpha=0.3)
     
     plt.tight_layout()
-    plt.savefig('/tmp/lorenz_attractor.png', dpi=150)
+    output_path = os.path.join(tempfile.gettempdir(), 'lorenz_attractor.png')
+    plt.savefig(output_path, dpi=150)
     plt.show()
 
 
@@ -396,7 +399,8 @@ def compare_energy_conservation():
     axes[1, 1].grid(True, alpha=0.3)
     
     plt.tight_layout()
-    plt.savefig('/tmp/energy_conservation_comparison.png', dpi=150)
+    output_path = os.path.join(tempfile.gettempdir(), 'energy_conservation_comparison.png')
+    plt.savefig(output_path, dpi=150)
     plt.show()
     
     # Print summary
